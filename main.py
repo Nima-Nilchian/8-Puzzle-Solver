@@ -1,14 +1,74 @@
 import heapq
 
+class Solver:
+    def __init__(self):
+        return
+
 
 class Puzzle:
     def __init__(self, n):
         self.N = n
+        self.board = [7, 1, 2, -1, 5, 4, 8, 6, 3]      # Default initial board state
+
         self.open_list = []
         self.closed_list = []
-
         # making open_list a priority Queue
         heapq.heapify(self.open_list)
+
+
+    def generate_children(self):
+        actions, blank_pos = self.legal_actions()
+
+        children = []
+        for action in actions:
+            new_board = self.generate_new_board(action)
+            children.append(new_board)
+
+        return children
+
+    def move_blank(self):
+        actions, blank_pos = self.legal_actions()
+
+        print('You can move in these directions: (', end=' ')
+        print(*actions, end=')')
+        print()
+        action = input('Please choose one: ')
+
+        new_board = self.generate_new_board(action)
+        self.board = new_board
+
+
+    def legal_actions(self):
+        blank_pos = self.blank_position()
+        row, col = blank_pos / self.N, blank_pos % self.N
+
+        actions = ['up', 'down', 'left', 'right']
+        if row == 0:
+            actions.remove('up')
+        if row == self.N:
+            actions.remove('down')
+        if col == 0:
+            actions.remove('left')
+        if col == self.N:
+            actions.remove('right')
+
+        return actions, blank_pos
+
+
+    def generate_new_board(self, action):
+        actions, blank_pos = self.legal_actions()
+
+        new_board = self.board.copy()
+        if action == 'up':
+            new_board[blank_pos], new_board[blank_pos - self.N] = new_board[blank_pos - self.N], new_board[blank_pos]
+        if action == 'down':
+            new_board[blank_pos], new_board[blank_pos + self.N] = new_board[blank_pos + self.N], new_board[blank_pos]
+        if action == 'left':
+            new_board[blank_pos], new_board[blank_pos - 1] = new_board[blank_pos - 1], new_board[blank_pos]
+        if action == 'right':
+            new_board[blank_pos], new_board[blank_pos + 1] = new_board[blank_pos + 1], new_board[blank_pos]
+
+        return new_board
 
     def input_puzzle(self):
         print("input the start state of puzzle like this pattern:")
@@ -19,10 +79,11 @@ class Puzzle:
         puzzle = []
         for i in range(self.N):
             puzz = list(map(int, input().split()))
-            puzzle.append(puzz)
+            puzzle.extend(puzz)
 
-        return puzzle
+        self.board = puzzle
 
+        return
 
     def solvable(self, puzzle):
         inversions = self.count_inversions(puzzle)
@@ -60,14 +121,16 @@ class Puzzle:
                     inv += 1
         return inv
 
-    def blank_position(self, puzzle):
-        pos = (0, 0)
-        for i in range(self.N):
-            for j in range(self.N):
-                if puzzle[i][j] == -1:
-                    pos = (i, j)
+    def blank_position(self):
+        pos = 0
+        for i in range(self.N * self.N):
+            if self.board[i] == -1:
+                return pos
+
         return pos
 
 # puzzle = [[1,2,3],[4,5,6],[7,8,-1]]
 
-print()
+
+# actions = ['up', 'down', 'left', 'right']
+# print(*actions)
