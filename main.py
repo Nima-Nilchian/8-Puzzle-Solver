@@ -5,7 +5,6 @@ import math
 class Puzzle:
     goal = [1, 2, 3, 4, 5, 6, 7, 8, -1]
 
-
     def __init__(self, n, board, level):
         self.N = n
         self.level = level  # g = 0 initially
@@ -79,7 +78,18 @@ class Puzzle:
         return pos
 
     def __str__(self):
-        return str(self.board[0:3]) + '\n' + str(self.board[3:6]) + '\n' + str(self.board[6:9]) + '\n'
+        str_ = "_"*13 + '\n'
+        for i in range(len(self.board)):
+            str_ += '|'
+            if self.board[i] == -1:
+                str_ += str(self.board[i]) + ' '
+            else:
+                str_ += ' ' + str(self.board[i]) + ' '
+            if (i+1) % self.N == 0:
+                str_ = str_ + '|' + '\n'
+
+        str_ += "_"*13 + '\n'
+        return str_
 
     # def move_blank(self):
     #     actions, blank_pos = self.legal_actions()
@@ -101,73 +111,107 @@ class Solver:
 
         heapq.heapify(self.open_list)  # making open_list a priority Queue
 
-    def process(self):
-        board = self.input_board()  # Get the initial board from user or default
-        puzzle = Puzzle(self.N, board, level=0)  # Create the initial Puzzle
-        self.curr_puzzle = puzzle
 
-        solvable = self.solvable(puzzle)  # Check if the puzzle is Solvable
+    def initial_phase(self):
+        self.input_board()
+
+        solvable = self.solvable(self.curr_puzzle)  # Check if the puzzle is Solvable
         if solvable is False:
             print('puzzle is not solvable!')
-        else:
-            res = self.ida_star_search(puzzle)
-            print("Path to goal is:")
-            print(*res)
+            self.initial_phase()
+
+        stat = input('Play with the Algorithm or User (a/u)? ')
+        if stat == 'a':
+            self.process()
+        elif stat == 'u':
+            self.user_move()
+
+
+    def process(self):
+        puzzle = self.curr_puzzle
+        path, info = self.ida_star_search(puzzle)
+
+        for i in range(len(path)):
+            print(path[i])
+            self.print_info(info[i])
+
+        return
+
+    def print_info(self, info):
+        print('*'*13)
+        print('h value: ', info[0])
+        print('g value: ', info[1])
+        print('f value: ', info[2])
+        print('*' * 13)
+
+
+    def user_move(self):
+        puz = self.curr_puzzle
+        print(puz)
+        print('Choose house number and the action to perform on it (up, down, left, right)')
+        num = int(input('house: '))
+        action = input('action: ')
+
+        new_board = self.move_house(num, action)
+        new_puzzle = Puzzle(self.N, new_board, level=puz.level + 1)
+        self.curr_puzzle = new_puzzle
+
+        if new_board == new_puzzle.goal:
+            print(new_puzzle)
+            print()
+            print('YAY!! You Found the Goal!\n')
+
+        status = input('Continue / Finish / Restart the Game? (c/f/r)')
+        if status == 'f':
             return
+        if status == 'r':
+            self.initial_phase()
+        else:
+            self.user_move()
 
-    def ida_star_search(self, root: Puzzle):
-        bound = root.compute_f_value()
+        return
 
-        path = [root]
-        while True:
-            l = self.search(path, bound)
-            if l == 'Found':
-                return path
-            elif l == math.inf:
-                return 'Not Found'
-            bound = l
-
-    def search(self, path, bound):
-        node = path[-1]
-        f = node.compute_f_value()
-        if node.board == node.goal:
-            return 'Found'
-        if f > bound:
-            return f
-
-        min_ = math.inf
-        successors = node.generate_children()
-
-        for suc in successors:
-            if suc not in path:
-                path.append(suc)
-
-                t = self.search(path, bound)
-                if t == 'Found':
-                    return 'Found'
-                if t < min_:
-                    min_ = t
-
-                path.pop(-1)
-
-        return min_
 
     def input_board(self):
         print('initial state is:')
-        print('7 1 2\n'
-              '-1 5 4\n'
-              '8 6 3\n')
-        state = input('Continue with initial state or input custom state (y / n)? ')
+        board = [7, 1, 2, -1, 5, 4, 8, 6, 3]
+        initial_puz = Puzzle(self.N, board, 0)
+        print(initial_puz)
+
+        state = input('Continue with initial state or input custom state (y/n)? ')
         board = []
-        if state == 'y':
-            board = [7, 1, 2, -1, 5, 4, 8, 6, 3]
-        else:
+        if state == 'n':
             print("input the start state of puzzle:")
             for i in range(self.N):
                 puz = list(map(int, input().split()))
                 board.extend(puz)
 
+            initial_puz.board = board
+
+        self.curr_puzzle = initial_puz
+        return
+
+
+    def move_house(self, num, action):
+        board = self.curr_puzzle.board
+        pos = board.index(num)
+        if action == 'up' and pos - self.N >= 0:
+            if board[pos - self.N] == -1:
+                board[pos], board[pos - self.N] = board[pos - self.N], board[pos]
+        elif action == 'down' and pos + self.N < len(board):
+            if board[pos + self.N] == -1:
+                board[pos], board[pos + self.N] = board[pos + self.N], board[pos]
+        elif action == 'left' and pos - 1 >= 0:
+            if board[pos - 1] == -1:
+                board[pos], board[pos - 1] = board[pos - 1], board[pos]
+        elif action == 'right' and pos + 1 < len(board):
+            if board[pos + 1] == -1:
+                board[pos], board[pos + 1] = board[pos + 1], board[pos]
+        else:
+            print('not valid!')
+
         return board
+
 
     def solvable(self, puzzle: Puzzle):
         inversions = self.count_inversions(puzzle)
@@ -202,14 +246,59 @@ class Solver:
                     inv += 1
         return inv
 
+    def ida_star_search(self, root: Puzzle):
+
+        bound = root.compute_f_value()
+
+        info = [(root.compute_heuristic_manhattan(), root.level, bound)]
+        path = [root]
+        while True:
+            l = self.search(path, bound, info)
+            if l == 'Found':
+                return path, info
+            elif l == math.inf:
+                return 'Not Found'
+            bound = l
+
+    def search(self, path, bound, info):
+        node = path[-1]
+
+        f = node.compute_f_value()
+        if node.board == node.goal:
+            return 'Found'
+        if f > bound:
+            return f
+
+        min_ = math.inf
+        successors = node.generate_children()
+        for suc in successors:
+            if suc not in path:
+                path.append(suc)
+                h = suc.compute_heuristic_manhattan()
+                info.append((h, suc.level, h+suc.level))
+
+                t = self.search(path, bound, info)
+                if t == 'Found':
+                    return 'Found'
+                if t < min_:
+                    min_ = t
+
+                path.pop(-1)
+                info.pop(-1)
+
+        return min_
+
 
 # puzzle = [[1,2,3],[4,5,6],[7,8,-1]]
 # print(puzzle[-1])
 # print(puzzle)
-# b = [7, 1, 2, -1, 5, 4, 8, 6, 3]
 
+b = [7, 1, 2, -1, 5, 4, 8, 6, 3]
+
+# p = Puzzle(3, b, 0)
+# print(p)
 s = Solver(3)
-s.process()
+s.initial_phase()
 
 # actions = ['up', 'down', 'left', 'right']
 # print(*actions)
