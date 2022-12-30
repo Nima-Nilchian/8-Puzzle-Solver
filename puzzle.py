@@ -1,18 +1,18 @@
 
 class Puzzle:
-    goal = [1, 2, 3, 4, 5, 6, 7, 8, -1]
+    goal = []
 
     def __init__(self, n, board, level):
         self.N = n
         self.level = level  # g = 0 initially
-        self.board = board  # initial board state
+        self.board = board  # board state
 
     def compute_heuristic_manhattan(self):
         heuristic = 0
-        for num in range(1, 9):
+        for num in range(1, self.N*self.N):
             distance = abs(self.board.index(num) - self.goal.index(num))
-            i = int(distance / 3)
-            j = int(distance % 3)
+            i = int(distance / self.N)
+            j = int(distance % self.N)
             heuristic = heuristic + i + j
 
         return heuristic
@@ -73,6 +73,12 @@ class Puzzle:
                 return pos
 
         return pos
+
+    @staticmethod
+    def goal_board(n):
+        goal = [i for i in range(1, n*n)]
+        goal.append(-1)
+        Puzzle.goal = goal
 
     def __str__(self):
         str_ = "_"*13 + '\n'
